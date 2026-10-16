@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import importlib.util
 import os
 from pathlib import Path
@@ -23,14 +24,20 @@ def make_attention(device="cpu", dtype=torch.float32, split=(8, 16), shift=(4, 8
     return module
 
 
-def load_plugin(upscale_class):
+@contextmanager
+def comfyui_stub(upscale_class):
     parent = ModuleType("comfy_extras")
     parent.__path__ = []
     core = ModuleType("comfy_extras.nodes_upscale_model")
     core.ImageUpscaleWithModel = upscale_class
+    with patch.dict(sys.modules, {"comfy_extras": parent, "comfy_extras.nodes_upscale_model": core}):
+        yield
+
+
+def load_plugin(upscale_class):
     spec = importlib.util.spec_from_file_location("dat_cache_plugin_test", ROOT / "__init__.py")
     plugin = importlib.util.module_from_spec(spec)
-    with patch.dict(sys.modules, {"comfy_extras": parent, "comfy_extras.nodes_upscale_model": core}):
+    with comfyui_stub(upscale_class):
         spec.loader.exec_module(plugin)
     return plugin
 
@@ -153,7 +160,8 @@ class CacheTests(unittest.TestCase):
         plugin = self.install()
         mask = Attention.calculate_mask
         execute = self.upscale.execute.__func__
-        self.assertTrue(plugin._install_patch())
+        with comfyui_stub(self.upscale):
+            self.assertTrue(plugin._install_patch())
         self.assertIs(Attention.calculate_mask, mask)
         self.assertIs(self.upscale.execute.__func__, execute)
 
