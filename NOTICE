@@ -1,0 +1,19 @@
+ComfyUI DAT Attention Cache
+Copyright 2026 landian01
+
+The mask construction in __init__.py is adapted from DAT's
+Adaptive_Spatial_Attention.calculate_mask as distributed by Spandrel 0.4.2.
+Changes include device-local allocations, dtype handling, bounded runtime
+caching, cache invalidation, and ComfyUI cleanup hooks.
+
+DAT: https://github.com/zhengchen1999/DAT
+DAT authors and contributors; Apache License 2.0 (see LICENSE).
+
+Spandrel: https://github.com/chaiNNer-org/spandrel
+Copyright (c) 2024 The ChaiNNer Organization.
+MIT notice: licenses/Spandrel-MIT.txt.
+
+The shifted-window mask construction is based on Swin Transformer:
+https://github.com/microsoft/Swin-Transformer
+Copyright (c) Microsoft Corporation.
+MIT notice: licenses/Swin-Transformer-MIT.txt.

@@ -1,0 +1,10 @@
+[project]
+name = "comfyui-dat-attention-cache"
+version = "1.0.2"
+description = "Device-local attention-mask caching for Spandrel DAT upscalers in ComfyUI"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+
+[project.urls]
+Repository = "https://github.com/landian01/ComfyUI-DAT-Attention-Cache"
+Issues = "https://github.com/landian01/ComfyUI-DAT-Attention-Cache/issues"

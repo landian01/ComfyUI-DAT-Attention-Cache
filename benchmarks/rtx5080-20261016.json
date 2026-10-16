@@ -1,0 +1,74 @@
+{
+  "baseline": {
+    "name": "baseline",
+    "wall_seconds": 46.96504409999761,
+    "cpu_seconds": 299.53125,
+    "mask_calls": 72,
+    "mask_wall_seconds": 34.355372999983956,
+    "peak_vram_gib": 4.2195329666137695,
+    "output_shape": [
+      1,
+      3840,
+      7680,
+      3
+    ],
+    "output_device": "cpu",
+    "finite": true
+  },
+  "optimized": {
+    "name": "dat_cache",
+    "wall_seconds": 12.458606599990162,
+    "cpu_seconds": 19.15625,
+    "mask_calls": 72,
+    "mask_wall_seconds": 0.007971899947733618,
+    "peak_vram_gib": 4.4734392166137695,
+    "output_shape": [
+      1,
+      3840,
+      7680,
+      3
+    ],
+    "output_device": "cpu",
+    "finite": true
+  },
+  "speedup": 3.76968674009136,
+  "max_abs_error": 0.0,
+  "mean_abs_error": 0.0,
+  "bitwise_equal": true,
+  "cache_released": true,
+  "mask_checks": [
+    {
+      "dtype": "torch.float32",
+      "equal": true,
+      "device": "cuda:0"
+    },
+    {
+      "dtype": "torch.float16",
+      "equal": true,
+      "device": "cuda:0"
+    },
+    {
+      "dtype": "torch.bfloat16",
+      "equal": true,
+      "device": "cuda:0"
+    }
+  ],
+  "environment": {
+    "date": "2026-10-16",
+    "gpu": "NVIDIA GeForce RTX 5080",
+    "python": "3.13.16",
+    "torch": "2.14.1+cu130",
+    "spandrel": "0.4.2",
+    "plugin": "1.0.1",
+    "model": "4x-UltraSharpV2.safetensors",
+    "input_size": [
+      1920,
+      960
+    ],
+    "scope": "ImageUpscaleWithModel only",
+    "order": [
+      "baseline",
+      "optimized"
+    ]
+  }
+}
