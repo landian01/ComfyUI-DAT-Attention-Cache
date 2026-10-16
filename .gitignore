@@ -5,3 +5,4 @@ __pycache__/
 .env
 *.log
 .codebase-memory/
+_native/

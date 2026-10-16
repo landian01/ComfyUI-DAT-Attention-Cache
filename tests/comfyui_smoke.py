@@ -28,7 +28,8 @@ class ComfyUIIntegrationTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("dat_cache_real_core_test", Path(__file__).resolve().parents[1] / "__init__.py")
         plugin = importlib.util.module_from_spec(spec)
         try:
-            spec.loader.exec_module(plugin)
+            with patch.dict(sys.modules, {spec.name: plugin}):
+                spec.loader.exec_module(plugin)
             self.assertTrue(plugin.PATCH_ACTIVE)
             attention = torch.nn.Module()
             attention.register_parameter("weight", torch.nn.Parameter(torch.empty(1)))

@@ -5,6 +5,8 @@ The mask construction in __init__.py is adapted from DAT's
 Adaptive_Spatial_Attention.calculate_mask as distributed by Spandrel 0.4.2.
 Changes include device-local allocations, dtype handling, bounded runtime
 caching, cache invalidation, and ComfyUI cleanup hooks.
+The optional csrc/dat_mask_cuda.cu operator directly emits the equivalent
+shifted-window masks. The Python cache policy is unchanged.
 
 DAT: https://github.com/zhengchen1999/DAT
 DAT authors and contributors; Apache License 2.0 (see LICENSE).

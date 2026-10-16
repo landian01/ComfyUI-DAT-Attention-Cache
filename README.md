@@ -27,10 +27,45 @@ git clone https://github.com/landian01/ComfyUI-DAT-Attention-Cache.git
 重启 ComfyUI。日志应包含：
 
 ```text
-DAT attention-mask cache patch 1.0.2 enabled (DAT=True, cleanup=True).
+DAT attention-mask cache patch 1.1.0 enabled (DAT=True, cleanup=True).
 ```
 
 节点列表里不会新增节点。卸载时移除插件目录并重启即可。
+
+## 可选 C++ / CUDA 蒙版内核
+
+1.1.0 增加专用蒙版生成算子。它直接写出两个方向的 `0/-100` 注意力蒙版，减少中间张量和 kernel launch。
+**现有缓存键、LRU 容量、尺寸失效和任务结束清理逻辑保留。** 算子只处理缓存未命中的情况。
+
+普通安装继续使用已有 PyTorch 实现。插件不会在 ComfyUI 启动时下载工具或自动编译。
+需要启用时，使用 ComfyUI 自己的 Python，在插件目录运行：
+
+```powershell
+python build_native.py --device cuda:0 --cuda-root 'C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.0'
+```
+
+将 `python` 换成 ComfyUI 的 Python 路径，将 CUDA 路径换成与 `torch.version.cuda` 一致的 Toolkit。
+当前构建脚本支持 Windows x64，需要 MSVC x64 C++ Build Tools 和匹配的 CUDA Toolkit；不需要 Python 开发头文件或 Ninja。
+编译器环境仅在构建子进程中设置，不改系统 PATH。成功后重启 ComfyUI，首次生成蒙版时日志会显示：
+
+```text
+DAT native CUDA mask backend enabled for SM 120.
+```
+
+本地编译产物放在 `_native/`，不进入 Git。加载前核对 PyTorch/CUDA 版本、平台、GPU 架构和内核源码哈希。
+没有产物、版本不匹配、加载失败、CPU、其他 GPU 架构或不支持的窗口配置均回退 PyTorch。
+更新 PyTorch、CUDA 或内核源码后需重新构建；构建只针对所选 GPU 的架构。
+原生算子支持 FP32、FP16、BF16，窗口面积不超过 1024；已实测 Windows RTX 5080 / SM 120，未验证 RTX 2070 或 Linux 原生构建。
+运行中的 CUDA 错误会抛出，避免在设备状态异常后继续计算。
+
+临时关闭原生后端、保留缓存，可在启动 ComfyUI 前设置：
+
+```powershell
+$env:DAT_CACHE_NATIVE = '0'
+```
+
+已有缓存使实际超分只剩少量蒙版构建，**专用内核对整段超分的收益很小**，通常没有必要为此单独安装完整编译工具链。
+本次基准与数值/内存检查记录见 [`benchmarks/cuda-rtx5080-20261017.md`](benchmarks/cuda-rtx5080-20261017.md)。
 
 ## 兼容性
 
@@ -76,6 +111,8 @@ python -m unittest discover -s tests -v
 ```
 
 真实接入测试在独立子进程中运行，使用合成数据和轻量模型替身验证 ComfyUI 节点的调用与清理，不加载超分权重。
+构建原生后端后，另设 `$env:DAT_CACHE_TEST_NATIVE = '1'` 可运行 33 组原生蒙版对照、非默认 CUDA 流、缓存复用及参数校验。
+GitHub 的 CPU CI 只验证缓存和后端选择/回退，不能证明 CUDA 内核或真实模型性能。
 
 ## 来源与许可证
 
@@ -89,3 +126,6 @@ A runtime extension that caches DAT shifted-window attention masks on the model'
 It clears cached masks when ComfyUI's `ImageUpscaleWithModel` returns or raises.
 Install by cloning into `custom_nodes` and restart ComfyUI; no workflow nodes are added.
 The measured speedup above applies to one learned super-resolution stage, not to a complete diffusion workflow.
+An optional, explicitly built Windows C++/CUDA operator accelerates cache misses while retaining the same cache.
+It falls back to PyTorch when absent or incompatible. The additional measured full-stage speedup is small;
+see the separate CUDA benchmark report rather than attributing the earlier cache speedup to the new kernel.

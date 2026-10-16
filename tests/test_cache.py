@@ -37,7 +37,7 @@ def comfyui_stub(upscale_class):
 def load_plugin(upscale_class):
     spec = importlib.util.spec_from_file_location("dat_cache_plugin_test", ROOT / "__init__.py")
     plugin = importlib.util.module_from_spec(spec)
-    with comfyui_stub(upscale_class):
+    with patch.dict(sys.modules, {spec.name: plugin}), comfyui_stub(upscale_class):
         spec.loader.exec_module(plugin)
     return plugin
 
@@ -95,6 +95,19 @@ class CacheTests(unittest.TestCase):
         second = self.mask(make_attention())
         self.assertIs(first[0], second[0])
         self.assertIs(first[1], second[1])
+
+    def test_optional_kernel_runs_only_on_cache_miss(self):
+        plugin = self.install()
+        module = make_attention()
+        expected = ORIGINAL_MASK(module, 32, 48, dtype=torch.float32)
+        with patch.object(plugin._mask_backend, "make_masks", return_value=expected) as native:
+            first = self.mask(module)
+            second = self.mask(module)
+        native.assert_called_once()
+        self.assertIs(first, second)
+        self.assertIs(first, expected)
+        self.upscale.execute()
+        self.assertFalse(plugin._runtime_mask_cache)
 
     def test_dtype_is_part_of_cache_key(self):
         self.install()
@@ -191,6 +204,52 @@ class CacheTests(unittest.TestCase):
                 self.assertEqual(actual[0].device.type, "cuda")
                 for result, reference in zip(actual, expected):
                     self.assertTrue(torch.equal(result.cpu(), reference))
+
+    @unittest.skipUnless(os.environ.get("DAT_CACHE_TEST_NATIVE") == "1" and torch.cuda.is_available(), "Native CUDA test is opt-in")
+    def test_native_kernel_parity_stream_and_cache(self):
+        plugin = self.install()
+        device = torch.device("cuda:0")
+        self.assertTrue(plugin._mask_backend.available(device), "Build the native backend first")
+        cases = [(16, 16, (8, 16), (4, 8)), (32, 48, (16, 8), (8, 4)),
+                 (64, 96, (8, 8), (4, 4)), (48, 80, (4, 8), (2, 4)),
+                 (16, 32, (1, 4), (0, 2)), (16, 16, (8, 16), (0, 0)),
+                 (16, 16, (8, 16), (8, 16)), (32, 32, (16, 16), (8, 8)),
+                 (32, 32, (32, 32), (16, 16))]
+        for dtype in (torch.float32, torch.float16, torch.bfloat16):
+            for height, width, split, shift in cases:
+                with self.subTest(dtype=dtype, shape=(height, width), split=split, shift=shift):
+                    module = make_attention(device, dtype, split, shift)
+                    expected = ORIGINAL_MASK(module, height, width, dtype=dtype)
+                    actual = plugin._mask_backend.make_masks(module, height, width, device, dtype)
+                    self.assertTrue(all(torch.equal(a.cpu(), b) for a, b in zip(actual, expected)))
+            for height, width in ((480, 512), (512, 512)):
+                module = make_attention(device, dtype)
+                expected = plugin._calculate_mask_on_device(module, height, width, device, dtype)
+                actual = plugin._mask_backend.make_masks(module, height, width, device, dtype)
+                self.assertTrue(all(torch.equal(a, b) for a, b in zip(actual, expected)))
+                del actual, expected
+        plugin.clear_runtime_mask_cache()
+        stream = torch.cuda.Stream()
+        with torch.cuda.stream(stream):
+            module = make_attention(device)
+            first = self.mask(module)
+            second = self.mask(module)
+        stream.synchronize()
+        expected = ORIGINAL_MASK(module, 32, 48, dtype=torch.float32)
+        self.assertIs(first, second)
+        self.assertTrue(all(torch.equal(a.cpu(), b) for a, b in zip(first, expected)))
+        self.upscale.execute()
+        self.assertFalse(plugin._runtime_mask_cache)
+
+        op = plugin._mask_backend._op
+        with self.assertRaisesRegex(RuntimeError, "divisible"):
+            op(31, 32, 8, 16, 4, 8, device, torch.float32)
+        with self.assertRaisesRegex(RuntimeError, "shifts"):
+            op(32, 32, 8, 16, 9, 8, device, torch.float32)
+        with self.assertRaisesRegex(RuntimeError, "supports"):
+            op(32, 32, 8, 16, 4, 8, device, torch.float64)
+        with self.assertRaisesRegex(RuntimeError, "limits"):
+            op(2**32, 32, 8, 16, 4, 8, device, torch.float32)
 
 
 if __name__ == "__main__":

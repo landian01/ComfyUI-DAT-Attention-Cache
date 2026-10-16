@@ -8,15 +8,19 @@ import inspect
 import logging
 import threading
 from collections import OrderedDict
+from pathlib import Path
 from typing import Any
 
 import torch
 
+from .native_backend import NativeBackend
+
 
 LOGGER = logging.getLogger(__name__)
-PATCH_VERSION = "1.0.2"
+PATCH_VERSION = "1.1.0"
 MAX_VARIANTS_PER_DEVICE = 8
 
+_mask_backend = NativeBackend(Path(__file__).resolve().parent)
 _cache_lock = threading.RLock()
 _runtime_mask_cache: dict[
     tuple[str, int | None],
@@ -170,7 +174,9 @@ def _install_dat_mask_cache() -> bool:
                 variants.move_to_end(cache_key)
                 return cached
 
-            masks = _calculate_mask_on_device(self, H, W, device, dtype)
+            masks = _mask_backend.make_masks(self, H, W, device, dtype)
+            if masks is None:
+                masks = _calculate_mask_on_device(self, H, W, device, dtype)
             variants[cache_key] = masks
             while len(variants) > MAX_VARIANTS_PER_DEVICE:
                 variants.popitem(last=False)
