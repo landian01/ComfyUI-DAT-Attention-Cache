@@ -17,7 +17,7 @@ from .native_backend import NativeBackend
 
 
 LOGGER = logging.getLogger(__name__)
-PATCH_VERSION = "1.1.0"
+PATCH_VERSION = "1.2.0"
 MAX_VARIANTS_PER_DEVICE = 8
 
 _mask_backend = NativeBackend(Path(__file__).resolve().parent)
@@ -233,9 +233,20 @@ def _install_patch() -> bool:
     return dat_ready and cleanup_ready
 
 
+def _install_layout_optimization():
+    try:
+        from .dat_layout import install_layout_patch
+        return install_layout_patch()
+    except Exception:
+        LOGGER.exception("DAT layout patch unavailable; keeping the attention-mask cache.")
+        return None
+
+
 PATCH_ACTIVE = _install_patch()
+LAYOUT_BACKEND = _install_layout_optimization() if PATCH_ACTIVE else None
+LAYOUT_ACTIVE = LAYOUT_BACKEND is not None
 
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
 
-__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "PATCH_ACTIVE"]
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "PATCH_ACTIVE", "LAYOUT_ACTIVE"]

@@ -185,6 +185,16 @@ class CacheTests(unittest.TestCase):
         self.assertFalse(self.plugin.PATCH_ACTIVE)
         self.assertIs(Attention.calculate_mask, ORIGINAL_MASK)
 
+    def test_layout_import_failure_keeps_mask_cache_working(self):
+        with patch.dict(sys.modules, {"dat_cache_plugin_test.dat_layout": None}):
+            with self.assertLogs("dat_cache_plugin_test", level="ERROR"):
+                plugin = self.install()
+        self.assertFalse(plugin.LAYOUT_ACTIVE)
+        first = self.mask()
+        self.assertIs(first, self.mask())
+        self.upscale.execute()
+        self.assertFalse(plugin._runtime_mask_cache)
+
     def test_unsupported_mask_signature_is_left_unchanged(self):
         unsupported = lambda self, height, width: None
         Attention.calculate_mask = unsupported

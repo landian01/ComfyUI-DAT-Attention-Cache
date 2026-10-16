@@ -1,6 +1,6 @@
 # ComfyUI DAT Attention Cache
 
-加速 Spandrel DAT 超分模型的窗口注意力蒙版计算。插件随 ComfyUI 启动自动生效，工作流无需增加节点。
+加速 Spandrel DAT 超分模型的注意力蒙版和 FP32 张量布局转换。插件随 ComfyUI 启动自动生效，工作流无需增加节点。
 
 ## 优化内容
 
@@ -11,6 +11,7 @@ DAT 会为偏移窗口生成注意力遮罩。反复在 CPU 构建相同遮罩�
 - ComfyUI 的 `ImageUpscaleWithModel` 正常结束或抛出异常后清空缓存。
 - 保留 FP32、FP16、BF16 的遮罩语义；GPU 取决于模型实际所在设备。
 - 运行时打补丁，不改 ComfyUI 核心或 `site-packages` 文件。
+- 1.2.0 在 DAT 的四个方法内加速部分 FP32 转置拷贝，使用 PyTorch 自带的 cuBLAS，无需另装编译器。
 
 它可以用于调用 ComfyUI 标准模型超分节点的工作流，包括 Ultimate SD Upscale。
 `4x-UltraSharpV2` 是已验证的 DAT 模型示例；文件名相似不代表底层架构相同。
@@ -27,10 +28,43 @@ git clone https://github.com/landian01/ComfyUI-DAT-Attention-Cache.git
 重启 ComfyUI。日志应包含：
 
 ```text
-DAT attention-mask cache patch 1.1.0 enabled (DAT=True, cleanup=True).
+DAT attention-mask cache patch 1.2.0 enabled (DAT=True, cleanup=True).
 ```
 
 节点列表里不会新增节点。卸载时移除插件目录并重启即可。
+
+## FP32 布局转换加速
+
+1.2.0 针对 DAT 推理中的一部分大尺寸转置视图，用 cuBLAS `cublasSgeam`
+完成与 `contiguous()` 对应的布局拷贝。模型权重、注意力计算和输出仍为 FP32；
+不修改 TF32、混合精度或 SageAttention 设置。现有蒙版缓存和可选蒙版内核保持原样。
+
+- 仅替换 DAT 的 `SpatialGate.forward`、`Spatial_Attention.im2win` 和两类 Adaptive Attention 的 `forward`。
+- 不修改全局 `torch.Tensor.contiguous`，不影响其他架构的模型。
+- 安装前验证四个原方法的源码指纹；上游实现不匹配时保留蒙版缓存，跳过布局补丁。
+- 加速范围：Windows CUDA、FP32、二维或单批次三维转置矩阵视图，至少 65,536 个元素。
+  带偏移、带列间隔的视图也可使用；其他形状、CPU、FP16/BF16、训练及 autograd 使用 PyTorch。
+- 首次符合条件的拷贝才加载 PyTorch 自带的 cuBLAS。使用 PyTorch 管理的线程/设备句柄及当前流，
+  不改变其流、指针模式或精度模式；CUDA Graph 捕获或句柄状态不适用时回退 PyTorch。
+- 库缺失时回退 PyTorch；执行中的 CUDA/cuBLAS 错误继续抛出。
+
+首次使用时日志应包含：
+
+```text
+DAT FP32 layout transpose enabled using PyTorch's bundled cuBLAS.
+```
+
+临时关闭布局加速、保留蒙版缓存和可选蒙版内核，在启动 ComfyUI 前设置：
+
+```powershell
+$env:DAT_CACHE_LAYOUT = '0'
+```
+
+当前 CUDA 布局路径仅实测 RTX 2070；Linux 使用 PyTorch 回退。
+本地四组完整 DAT 超分节点对照，中位数为 **58.80 → 40.04 秒，耗时减少 31.9%**，
+全部输出逐位一致。该 2070 在长任务中存在热降频；记录包含冷却步骤与温度采样，
+数字仅代表其当前散热状态，修复散热后需重测。
+完整节点的对照方法和结果见 [`benchmarks/layout-rtx2070-20261017.md`](benchmarks/layout-rtx2070-20261017.md)。
 
 ## 可选 C++ / CUDA 蒙版内核
 
@@ -69,8 +103,9 @@ $env:DAT_CACHE_NATIVE = '0'
 
 ## 兼容性
 
-已验证：ComfyUI 0.41.1、Spandrel 0.4.2、Python 3.13.16、PyTorch 2.14.1+cu130、Windows、RTX 5080。
-测试也覆盖 CPU 上的遮罩构建。其他组合需要自行验证。
+本地环境：ComfyUI 0.41.1、Spandrel 0.4.2、Python 3.13.16、PyTorch 2.14.1+cu130、Windows。
+原有缓存和可选蒙版内核已验证 RTX 5080；1.2.0 布局加速单独使用 RTX 2070 验证。
+测试也覆盖 CPU 上的遮罩构建和布局回退。其他组合需要自行验证。
 
 当前接入点要求 `ImageUpscaleWithModel.execute` 是 classmethod，且 DAT 提供
 `calculate_mask(self, H, W[, dtype])`。接入不兼容时会记录错误，并将 `PATCH_ACTIVE` 设为 `False`。
@@ -102,6 +137,8 @@ python -m unittest discover -s tests -v
 ```
 
 CPU 测试覆盖数值一致性、缓存键、容量和失效、成功/异常清理、重复安装及不兼容接口。
+布局测试另覆盖源码校验、DAT 局部作用域、CPU/autograd 回退；CUDA 选项也验证
+FP32 转置、切片偏移、非默认流、真实 DAT 子模块和训练回退。
 CUDA 一致性和真实 ComfyUI 接入测试可按需开启（PowerShell 示例）：
 
 ```powershell
@@ -112,7 +149,7 @@ python -m unittest discover -s tests -v
 
 真实接入测试在独立子进程中运行，使用合成数据和轻量模型替身验证 ComfyUI 节点的调用与清理，不加载超分权重。
 构建原生后端后，另设 `$env:DAT_CACHE_TEST_NATIVE = '1'` 可运行 33 组原生蒙版对照、非默认 CUDA 流、缓存复用及参数校验。
-GitHub 的 CPU CI 只验证缓存和后端选择/回退，不能证明 CUDA 内核或真实模型性能。
+GitHub 的 CPU CI 只验证缓存、DAT 方法数值及后端选择/回退，不能证明 CUDA 内核或真实模型性能。
 
 ## 来源与许可证
 
@@ -129,3 +166,7 @@ The measured speedup above applies to one learned super-resolution stage, not to
 An optional, explicitly built Windows C++/CUDA operator accelerates cache misses while retaining the same cache.
 It falls back to PyTorch when absent or incompatible. The additional measured full-stage speedup is small;
 see the separate CUDA benchmark report rather than attributing the earlier cache speedup to the new kernel.
+Version 1.2.0 also accelerates selected FP32 layout copies inside DAT using PyTorch's bundled cuBLAS.
+It leaves mask caching and inference precision intact, never patches Tensor methods globally, and falls back
+for unsupported source versions, platforms, dtypes, layouts, autograd, training and CUDA Graph capture.
+See the RTX 2070 full-node benchmark for this separate optimization.

@@ -8,6 +8,13 @@ caching, cache invalidation, and ComfyUI cleanup hooks.
 The optional csrc/dat_mask_cuda.cu operator directly emits the equivalent
 shifted-window masks. The Python cache policy is unchanged.
 
+The four methods in dat_layout.py are adapted from Spandrel 0.4.2's
+SpatialGate.forward, Spatial_Attention.im2win,
+Adaptive_Spatial_Attention.forward and Adaptive_Channel_Attention.forward.
+The only computational-path changes replace eligible explicit contiguous
+copies with FP32 cuBLAS transpose copies. Training/autograd and unsupported
+layouts use PyTorch; Tensor methods are not patched globally.
+
 DAT: https://github.com/zhengchen1999/DAT
 DAT authors and contributors; Apache License 2.0 (see LICENSE).
 

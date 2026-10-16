@@ -1,0 +1,396 @@
+{
+  "timestamp_utc": "2026-10-16T21:34:05.977916+00:00",
+  "plugin_version": "1.2.0",
+  "gpu": "NVIDIA GeForce RTX 2070",
+  "gpu_capability": [
+    7,
+    5
+  ],
+  "visible_gpu_count": 1,
+  "scope": "complete ImageUpscaleWithModel call, including all tiles, transfers and stitching",
+  "model": "4x-UltraSharpV2.safetensors",
+  "input_shape": [
+    1,
+    960,
+    1920,
+    3
+  ],
+  "precision": "FP32",
+  "torch": "2.14.1+cu130",
+  "cuda": "13.0",
+  "python": "3.13.16",
+  "spandrel": "0.4.2",
+  "float32_matmul_precision": "highest",
+  "matmul_allow_tf32": false,
+  "mask_cache_both_modes": true,
+  "native_mask_both_modes": false,
+  "global_tensor_contiguous_unchanged": true,
+  "cooldown_temperature_c": 60,
+  "cooldown_min_seconds": 30,
+  "cooldown_excluded_from_node_timing": true,
+  "torch_median_seconds": 58.80418420000933,
+  "layout_median_seconds": 40.042891999997664,
+  "speedup": 1.468529900388133,
+  "time_reduction_percent": 31.904689190482284,
+  "warmups": [
+    {
+      "mode": "torch",
+      "pair": -1,
+      "warmup": true,
+      "wall_seconds": 59.615821700019296,
+      "start_gpu_status": {
+        "temperature_c": 56,
+        "sm_clock_mhz": 300,
+        "utilization_percent": 0,
+        "thermal_slowdown": false
+      },
+      "gpu_telemetry": {
+        "samples": 59,
+        "max_temperature_c": 91,
+        "active_sm_clock_range_mhz": [
+          840,
+          1770
+        ],
+        "thermal_slowdown_seen": true,
+        "thermal_slowdown_samples": 56
+      },
+      "peak_allocated_gib": 4.4462175369262695,
+      "cache_cleared": true,
+      "output_device": "cpu",
+      "output_shape": [
+        1,
+        3840,
+        7680,
+        3
+      ],
+      "output_dtype": "torch.float32",
+      "bitwise_equal": true,
+      "finite": true,
+      "max_abs_error": 0.0
+    },
+    {
+      "mode": "layout",
+      "pair": -1,
+      "warmup": true,
+      "wall_seconds": 43.6173033999803,
+      "start_gpu_status": {
+        "temperature_c": 59,
+        "sm_clock_mhz": 300,
+        "utilization_percent": 0,
+        "thermal_slowdown": false
+      },
+      "gpu_telemetry": {
+        "samples": 43,
+        "max_temperature_c": 90,
+        "active_sm_clock_range_mhz": [
+          300,
+          1620
+        ],
+        "thermal_slowdown_seen": true,
+        "thermal_slowdown_samples": 40
+      },
+      "peak_allocated_gib": 4.4462175369262695,
+      "cache_cleared": true,
+      "output_device": "cpu",
+      "output_shape": [
+        1,
+        3840,
+        7680,
+        3
+      ],
+      "output_dtype": "torch.float32",
+      "bitwise_equal": true,
+      "finite": true,
+      "max_abs_error": 0.0
+    }
+  ],
+  "rows": [
+    {
+      "mode": "torch",
+      "pair": 0,
+      "warmup": false,
+      "wall_seconds": 61.685152600024594,
+      "start_gpu_status": {
+        "temperature_c": 59,
+        "sm_clock_mhz": 300,
+        "utilization_percent": 0,
+        "thermal_slowdown": false
+      },
+      "gpu_telemetry": {
+        "samples": 61,
+        "max_temperature_c": 90,
+        "active_sm_clock_range_mhz": [
+          405,
+          1785
+        ],
+        "thermal_slowdown_seen": true,
+        "thermal_slowdown_samples": 58
+      },
+      "peak_allocated_gib": 4.4462175369262695,
+      "cache_cleared": true,
+      "output_device": "cpu",
+      "output_shape": [
+        1,
+        3840,
+        7680,
+        3
+      ],
+      "output_dtype": "torch.float32",
+      "bitwise_equal": true,
+      "finite": true,
+      "max_abs_error": 0.0
+    },
+    {
+      "mode": "layout",
+      "pair": 0,
+      "warmup": false,
+      "wall_seconds": 42.65176929999143,
+      "start_gpu_status": {
+        "temperature_c": 59,
+        "sm_clock_mhz": 300,
+        "utilization_percent": 0,
+        "thermal_slowdown": false
+      },
+      "gpu_telemetry": {
+        "samples": 42,
+        "max_temperature_c": 90,
+        "active_sm_clock_range_mhz": [
+          300,
+          1620
+        ],
+        "thermal_slowdown_seen": true,
+        "thermal_slowdown_samples": 39
+      },
+      "peak_allocated_gib": 4.4462175369262695,
+      "cache_cleared": true,
+      "output_device": "cpu",
+      "output_shape": [
+        1,
+        3840,
+        7680,
+        3
+      ],
+      "output_dtype": "torch.float32",
+      "bitwise_equal": true,
+      "finite": true,
+      "max_abs_error": 0.0
+    },
+    {
+      "mode": "layout",
+      "pair": 1,
+      "warmup": false,
+      "wall_seconds": 41.94447509999736,
+      "start_gpu_status": {
+        "temperature_c": 58,
+        "sm_clock_mhz": 300,
+        "utilization_percent": 0,
+        "thermal_slowdown": false
+      },
+      "gpu_telemetry": {
+        "samples": 42,
+        "max_temperature_c": 91,
+        "active_sm_clock_range_mhz": [
+          825,
+          1710
+        ],
+        "thermal_slowdown_seen": true,
+        "thermal_slowdown_samples": 40
+      },
+      "peak_allocated_gib": 4.4462175369262695,
+      "cache_cleared": true,
+      "output_device": "cpu",
+      "output_shape": [
+        1,
+        3840,
+        7680,
+        3
+      ],
+      "output_dtype": "torch.float32",
+      "bitwise_equal": true,
+      "finite": true,
+      "max_abs_error": 0.0
+    },
+    {
+      "mode": "torch",
+      "pair": 1,
+      "warmup": false,
+      "wall_seconds": 59.61849009999423,
+      "start_gpu_status": {
+        "temperature_c": 58,
+        "sm_clock_mhz": 300,
+        "utilization_percent": 0,
+        "thermal_slowdown": false
+      },
+      "gpu_telemetry": {
+        "samples": 59,
+        "max_temperature_c": 89,
+        "active_sm_clock_range_mhz": [
+          615,
+          1785
+        ],
+        "thermal_slowdown_seen": true,
+        "thermal_slowdown_samples": 55
+      },
+      "peak_allocated_gib": 4.4462175369262695,
+      "cache_cleared": true,
+      "output_device": "cpu",
+      "output_shape": [
+        1,
+        3840,
+        7680,
+        3
+      ],
+      "output_dtype": "torch.float32",
+      "bitwise_equal": true,
+      "finite": true,
+      "max_abs_error": 0.0
+    },
+    {
+      "mode": "torch",
+      "pair": 2,
+      "warmup": false,
+      "wall_seconds": 57.98987830002443,
+      "start_gpu_status": {
+        "temperature_c": 58,
+        "sm_clock_mhz": 300,
+        "utilization_percent": 0,
+        "thermal_slowdown": false
+      },
+      "gpu_telemetry": {
+        "samples": 58,
+        "max_temperature_c": 90,
+        "active_sm_clock_range_mhz": [
+          870,
+          1650
+        ],
+        "thermal_slowdown_seen": true,
+        "thermal_slowdown_samples": 55
+      },
+      "peak_allocated_gib": 4.4462175369262695,
+      "cache_cleared": true,
+      "output_device": "cpu",
+      "output_shape": [
+        1,
+        3840,
+        7680,
+        3
+      ],
+      "output_dtype": "torch.float32",
+      "bitwise_equal": true,
+      "finite": true,
+      "max_abs_error": 0.0
+    },
+    {
+      "mode": "layout",
+      "pair": 2,
+      "warmup": false,
+      "wall_seconds": 38.141308899997966,
+      "start_gpu_status": {
+        "temperature_c": 55,
+        "sm_clock_mhz": 300,
+        "utilization_percent": 0,
+        "thermal_slowdown": false
+      },
+      "gpu_telemetry": {
+        "samples": 38,
+        "max_temperature_c": 91,
+        "active_sm_clock_range_mhz": [
+          960,
+          1770
+        ],
+        "thermal_slowdown_seen": true,
+        "thermal_slowdown_samples": 35
+      },
+      "peak_allocated_gib": 4.4462175369262695,
+      "cache_cleared": true,
+      "output_device": "cpu",
+      "output_shape": [
+        1,
+        3840,
+        7680,
+        3
+      ],
+      "output_dtype": "torch.float32",
+      "bitwise_equal": true,
+      "finite": true,
+      "max_abs_error": 0.0
+    },
+    {
+      "mode": "layout",
+      "pair": 3,
+      "warmup": false,
+      "wall_seconds": 36.67504810000537,
+      "start_gpu_status": {
+        "temperature_c": 53,
+        "sm_clock_mhz": 300,
+        "utilization_percent": 0,
+        "thermal_slowdown": false
+      },
+      "gpu_telemetry": {
+        "samples": 37,
+        "max_temperature_c": 89,
+        "active_sm_clock_range_mhz": [
+          975,
+          1800
+        ],
+        "thermal_slowdown_seen": true,
+        "thermal_slowdown_samples": 33
+      },
+      "peak_allocated_gib": 4.4462175369262695,
+      "cache_cleared": true,
+      "output_device": "cpu",
+      "output_shape": [
+        1,
+        3840,
+        7680,
+        3
+      ],
+      "output_dtype": "torch.float32",
+      "bitwise_equal": true,
+      "finite": true,
+      "max_abs_error": 0.0
+    },
+    {
+      "mode": "torch",
+      "pair": 3,
+      "warmup": false,
+      "wall_seconds": 54.095514599990565,
+      "start_gpu_status": {
+        "temperature_c": 52,
+        "sm_clock_mhz": 300,
+        "utilization_percent": 0,
+        "thermal_slowdown": false
+      },
+      "gpu_telemetry": {
+        "samples": 54,
+        "max_temperature_c": 91,
+        "active_sm_clock_range_mhz": [
+          1410,
+          1815
+        ],
+        "thermal_slowdown_seen": true,
+        "thermal_slowdown_samples": 49
+      },
+      "peak_allocated_gib": 4.4462175369262695,
+      "cache_cleared": true,
+      "output_device": "cpu",
+      "output_shape": [
+        1,
+        3840,
+        7680,
+        3
+      ],
+      "output_dtype": "torch.float32",
+      "bitwise_equal": true,
+      "finite": true,
+      "max_abs_error": 0.0
+    }
+  ],
+  "limitations": [
+    "The RTX 2070 thermally throttled during these full-node calls, despite cooling to at most 60 C before each call. Results describe this card under its current cooling conditions, not an unthrottled hardware limit.",
+    "Only RTX 2070 was used. RTX 5080 was excluded. CPU, host memory, case cooling and power supply are shared system resources.",
+    "This measures a complete DAT upscale node, not diffusion sampling, image encoding or an entire ComfyUI workflow."
+  ],
+  "all_four_pairs_faster": true,
+  "all_outputs_bitwise_equal": true
+}
