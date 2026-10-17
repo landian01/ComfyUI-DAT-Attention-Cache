@@ -12,6 +12,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.request
 
 
 GPU_QUERY = "temperature.gpu,clocks.current.sm,utilization.gpu,clocks_event_reasons.sw_thermal_slowdown"
@@ -82,11 +83,21 @@ def main():
     parser.add_argument("--pairs", type=int, default=4)
     parser.add_argument("--cooldown-temperature", type=int, default=60)
     parser.add_argument("--cooldown-min-seconds", type=int, default=30)
+    parser.add_argument("--queue-url", help="Abort if this ComfyUI queue is busy or cannot be checked")
     args = parser.parse_args()
     if os.environ.get("CUDA_VISIBLE_DEVICES") != args.gpu_uuid:
         raise RuntimeError("Set CUDA_VISIBLE_DEVICES to exactly --gpu-uuid before starting Python")
     if args.pairs < 2:
         raise ValueError("Use at least two counterbalanced A/B pairs")
+
+    def check_queue_idle():
+        if args.queue_url:
+            with urllib.request.urlopen(args.queue_url, timeout=5) as response:
+                queue = json.load(response)
+            if queue["queue_running"] or queue["queue_pending"]:
+                raise RuntimeError("ComfyUI queue became busy; discard this benchmark attempt")
+
+    check_queue_idle()
     os.environ["DAT_CACHE_NATIVE"] = "0"
     os.environ.pop("DAT_CACHE_LAYOUT", None)
 
@@ -120,6 +131,20 @@ def main():
     original_contiguous = torch.Tensor.contiguous
     rows = []
     reference = None
+    tile_shapes = []
+
+    class GuardedModel:
+        def __getattr__(self, name):
+            return getattr(model, name)
+
+        def __call__(self, tile):
+            check_queue_idle()
+            tile_shapes.append(list(tile.shape))
+            result = model(tile)
+            check_queue_idle()
+            return result
+
+    guarded_model = GuardedModel()
 
     def run(mode, pair, warmup=False):
         nonlocal reference
@@ -128,6 +153,7 @@ def main():
         torch.cuda.synchronize()
         cooldown_start = time.perf_counter()
         while True:
+            check_queue_idle()
             status = read_gpu_status(args.gpu_uuid)
             cooled_for = time.perf_counter() - cooldown_start
             if status["temperature_c"] <= args.cooldown_temperature and cooled_for >= args.cooldown_min_seconds:
@@ -138,11 +164,14 @@ def main():
         print(json.dumps({"starting_mode": mode, "pair": pair, "warmup": warmup, "start_gpu_status": status}), flush=True)
         telemetry = GpuTelemetry(args.gpu_uuid)
         telemetry.start()
+        tile_shapes.clear()
         torch.cuda.reset_peak_memory_stats()
         started = time.perf_counter()
         try:
-            result, = ImageUpscaleWithModel.execute(model, image)
+            check_queue_idle()
+            result, = ImageUpscaleWithModel.execute(guarded_model, image)
             torch.cuda.synchronize()
+            check_queue_idle()
             wall_seconds = time.perf_counter() - started
         finally:
             telemetry.stop()
@@ -150,6 +179,7 @@ def main():
             "mode": mode, "pair": pair, "warmup": warmup,
             "wall_seconds": wall_seconds,
             "start_gpu_status": status, "gpu_telemetry": telemetry.summary(),
+            "tile_shapes": list(tile_shapes),
             "peak_allocated_gib": torch.cuda.max_memory_allocated() / 2**30,
             "cache_cleared": not plugin._runtime_mask_cache and not plugin._runtime_shape,
             "output_device": str(result.device),
@@ -197,6 +227,7 @@ def main():
             "cooldown_temperature_c": args.cooldown_temperature,
             "cooldown_min_seconds": args.cooldown_min_seconds,
             "cooldown_excluded_from_node_timing": True,
+            "comfyui_queue_idle_guard": bool(args.queue_url),
             "torch_median_seconds": before, "layout_median_seconds": after,
             "speedup": before / after, "time_reduction_percent": (1 - after / before) * 100,
             "warmups": warmups, "rows": rows,

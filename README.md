@@ -60,11 +60,16 @@ DAT FP32 layout transpose enabled using PyTorch's bundled cuBLAS.
 $env:DAT_CACHE_LAYOUT = '0'
 ```
 
-当前 CUDA 布局路径仅实测 RTX 2070；Linux 使用 PyTorch 回退。
+当前 CUDA 布局路径已实测 Windows RTX 2070 和 RTX 5080；Linux 使用 PyTorch 回退。
 本地四组完整 DAT 超分节点对照，中位数为 **58.80 → 40.04 秒，耗时减少 31.9%**，
 全部输出逐位一致。该 2070 在长任务中存在热降频；记录包含冷却步骤与温度采样，
 数字仅代表其当前散热状态，修复散热后需重测。
 完整节点的对照方法和结果见 [`benchmarks/layout-rtx2070-20261017.md`](benchmarks/layout-rtx2070-20261017.md)。
+
+随后在空闲 RTX 5080 上完成四组交错对照，中位数为 **12.291 → 11.345 秒，耗时减少 7.69%**。
+全部输出逐位一致、最大误差 0；每次均为相同的 8 个分块，最高温度 67°C，未观测到热降频。
+完整记录见 [`benchmarks/layout-rtx5080-20261017.md`](benchmarks/layout-rtx5080-20261017.md)。
+两项记录均仅覆盖完整 DAT 超分节点，不代表整个扩散工作流的加速比例。
 
 ## 可选 C++ / CUDA 蒙版内核
 
@@ -104,7 +109,7 @@ $env:DAT_CACHE_NATIVE = '0'
 ## 兼容性
 
 本地环境：ComfyUI 0.41.1、Spandrel 0.4.2、Python 3.13.16、PyTorch 2.14.1+cu130、Windows。
-原有缓存和可选蒙版内核已验证 RTX 5080；1.2.0 布局加速单独使用 RTX 2070 验证。
+原有缓存和可选蒙版内核已验证 RTX 5080；1.2.0 布局加速分别在 RTX 2070、RTX 5080 上验证。
 测试也覆盖 CPU 上的遮罩构建和布局回退。其他组合需要自行验证。
 
 当前接入点要求 `ImageUpscaleWithModel.execute` 是 classmethod，且 DAT 提供
@@ -169,4 +174,6 @@ see the separate CUDA benchmark report rather than attributing the earlier cache
 Version 1.2.0 also accelerates selected FP32 layout copies inside DAT using PyTorch's bundled cuBLAS.
 It leaves mask caching and inference precision intact, never patches Tensor methods globally, and falls back
 for unsupported source versions, platforms, dtypes, layouts, autograd, training and CUDA Graph capture.
-See the RTX 2070 full-node benchmark for this separate optimization.
+See the separate RTX 2070 and RTX 5080 full-node benchmarks for this optimization.
+The RTX 5080 run was queue-guarded and showed no thermal throttling; all four pairs improved,
+with 7.69% lower median node time and bitwise-identical FP32 outputs.
